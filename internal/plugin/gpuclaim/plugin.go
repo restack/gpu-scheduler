@@ -31,7 +31,6 @@ var (
 	_ framework.FilterPlugin    = &Plugin{}
 	_ framework.ScorePlugin     = &Plugin{}
 	_ framework.ReservePlugin   = &Plugin{}
-	_ framework.UnreservePlugin = &Plugin{}
 	_ framework.PreBindPlugin   = &Plugin{}
 	_ framework.StateData       = &stateData{}
 )
@@ -63,7 +62,7 @@ type Plugin struct {
 func (p *Plugin) Name() string { return Name }
 
 // New constructs a Plugin instance.
-func New(_ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
 	return &Plugin{
 		client: handle.ClientSet(),
 		coord:  handle.ClientSet().CoordinationV1(),
@@ -92,7 +91,7 @@ func (p *Plugin) Filter(ctx context.Context, cycleState *framework.CycleState, p
 }
 
 // Score favors nodes with contiguous GPUs. MVP stub returns static score.
-func (p *Plugin) Score(ctx context.Context, cycleState *framework.CycleState, pod *corev1.Pod, nodeName string) (int64, *framework.Status) {
+func (p *Plugin) Score(ctx context.Context, cycleState *framework.CycleState, pod *corev1.Pod, nodeInfo *framework.NodeInfo) (int64, *framework.Status) {
 	return 1, nil
 }
 

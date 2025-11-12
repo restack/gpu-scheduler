@@ -53,6 +53,11 @@ EOF
 kubectl logs gpu-test
 ```
 
+## Compatibility Targets
+
+- **Kubernetes**: Built and validated against 1.33.x (active support until mid‑2026). Smoke tests still run against 1.32/1.31, but older clusters are best-effort only.
+- **Go toolchain**: Requires Go 1.24.x to compile all components. Earlier releases are unsupported because the Kubernetes 1.33 libraries demand Go 1.24 or newer.
+
 ## Documentation
 
 - **[Architecture](docs/architecture.md)** - How the system works under the hood

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Kubernetes cluster (1.28+)
+- Kubernetes cluster 1.33.x (verified) — newer minors preferred; limited regression on 1.32/1.31
 - Nodes with NVIDIA GPUs
 - NVIDIA device plugin installed (for GPU discovery)
 - Helm 3 installed

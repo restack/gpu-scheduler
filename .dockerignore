@@ -2,48 +2,109 @@
 .git/
 .gitignore
 .gitattributes
+.github/
 
 # Documentation
-README.md
-CLAUDE.md
+*.md
+!go.mod
+!go.sum
 docs/
+examples/
 
-# Kubernetes manifests
+# Kubernetes & Helm
 charts/
 hack/
+*.yaml
+*.yml
+!go.mod
+!go.sum
 
 # CI/CD
 .github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
 
 # IDE and editor files
 .vscode/
 .idea/
+.fleet/
 *.swp
 *.swo
+*.swn
 *~
+.project
+.settings/
+.classpath
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
 
 # Local development
 .cache/
 .config/
 .local/
 .env
-.env.local
+.env.*
+!.env.example
+.envrc
 
-# Test files
+# Test files and coverage
 *_test.go
+coverage.out
+coverage.html
+coverage.txt
+*.test
+testdata/
 
-# Build output (except the binary we're building)
+# Build output
 bin/
 dist/
 build/
 _output/
-
-# OS files
-.DS_Store
-Thumbs.db
+out/
+vendor/
 
 # Temporary files
 tmp/
 temp/
 *.tmp
 *.log
+*.bak
+*.backup
+
+# Docker
+Dockerfile*
+!Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# License files (include in image via COPY if needed)
+LICENSE*
+NOTICE*
+CONTRIBUTING*
+
+# Development tools
+Makefile
+.golangci.yml
+.editorconfig
+.pre-commit-config.yaml
+
+# Misc
+*.pem
+*.key
+*.crt
+*.p12
+kubeconfig
+*.kubeconfig

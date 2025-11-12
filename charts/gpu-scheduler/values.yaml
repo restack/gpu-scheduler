@@ -1,18 +1,18 @@
 image:
-  repository: ghcr.io/aaronlab/gpu-scheduler
+  repository: ghcr.io/ziwon/gpu-scheduler
   tag: dev
   pullPolicy: IfNotPresent
 
 webhook:
   image:
-    repository: ghcr.io/aaronlab/gpu-scheduler-webhook
+    repository: ghcr.io/ziwon/gpu-scheduler-webhook
     tag: dev
     pullPolicy: IfNotPresent
   caBundle: ""
 
 agent:
   image:
-    repository: ghcr.io/aaronlab/gpu-scheduler-agent
+    repository: ghcr.io/ziwon/gpu-scheduler-agent
     tag: dev
     pullPolicy: IfNotPresent
 

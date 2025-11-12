@@ -80,7 +80,7 @@ func publishStatus(ctx context.Context, c client.Client, nodeName string, device
 			NodeName: nodeName,
 		},
 	}
-	if err := c.Patch(ctx, obj, client.Apply, client.ForceOwnership(true), client.FieldOwner("gpu-agent")); err != nil {
+	if err := c.Patch(ctx, obj, client.Apply, client.FieldOwner("gpu-agent"), client.ForceOwnership); err != nil {
 		return err
 	}
 
@@ -92,5 +92,5 @@ func publishStatus(ctx context.Context, c client.Client, nodeName string, device
 			Total:   len(devices),
 		},
 	}
-	return c.Status().Patch(ctx, status, client.Apply, client.ForceOwnership(true), client.FieldOwner("gpu-agent-status"))
+	return c.Status().Patch(ctx, status, client.Apply, client.FieldOwner("gpu-agent-status"), client.ForceOwnership)
 }

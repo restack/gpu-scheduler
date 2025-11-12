@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Go 1.22 or later
+- Go 1.24.x
 - Docker
 - Kubernetes cluster (kind recommended for local development)
 - kubectl
