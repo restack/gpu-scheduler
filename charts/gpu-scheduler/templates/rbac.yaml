@@ -1,33 +1,161 @@
+---
+# ServiceAccount for all components
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Values.serviceAccountName }}
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.Namespace }}
 ---
+# ClusterRole for Scheduler
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Values.serviceAccountName }}
+  name: {{ .Values.serviceAccountName }}-scheduler
 rules:
+  # Core scheduler resources - pods and nodes
   - apiGroups: [""]
-    resources: ["pods", "nodes"]
+    resources: ["pods", "nodes", "pods/status"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods/binding"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch", "update"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["create", "patch", "update"]
+
+  # Namespace resources (scheduler needs to watch namespaces)
+  - apiGroups: [""]
+    resources: ["namespaces"]
     verbs: ["get", "list", "watch"]
+
+  # Services (scheduler needs to watch services for topology)
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+
+  # ConfigMaps (for authentication config in kube-system)
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+
+  # ReplicationControllers, ReplicaSets, StatefulSets (for pod ownership)
+  - apiGroups: [""]
+    resources: ["replicationcontrollers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+
+  # PersistentVolumes and PersistentVolumeClaims (for storage awareness)
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+
+  # Storage classes and CSI resources (for volume topology)
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "csinodes", "csidrivers", "csistoragecapacities"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch"]
+
+  # PodDisruptionBudgets (for scheduling decisions)
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+
+  # Leases (for GPU locking mechanism)
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
-    verbs: ["get", "list", "create", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # GPU Custom Resources
   - apiGroups: ["gpu.scheduling"]
-    resources: ["gpuclaims", "gpunodestatuses"]
-    verbs: ["get", "list", "watch", "update", "patch", "create"]
+    resources: ["gpuclaims"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["gpu.scheduling"]
+    resources: ["gpuclaims/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["gpu.scheduling"]
+    resources: ["gpunodestatuses"]
+    verbs: ["get", "list", "watch"]
 ---
+# ClusterRole for Agent
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.serviceAccountName }}-agent
+rules:
+  # Nodes (agent needs to read node info)
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+
+  # GPU Node Status resources (agent reports GPU inventory)
+  - apiGroups: ["gpu.scheduling"]
+    resources: ["gpunodestatuses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["gpu.scheduling"]
+    resources: ["gpunodestatuses/status"]
+    verbs: ["get", "update", "patch"]
+---
+# ClusterRole for Webhook
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.serviceAccountName }}-webhook
+rules:
+  # Webhook only needs to read pod annotations
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+  # GPU Claims (to validate references)
+  - apiGroups: ["gpu.scheduling"]
+    resources: ["gpuclaims"]
+    verbs: ["get", "list"]
+---
+# ClusterRoleBinding for Scheduler
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Values.serviceAccountName }}
+  name: {{ .Values.serviceAccountName }}-scheduler
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Values.serviceAccountName }}
+  name: {{ .Values.serviceAccountName }}-scheduler
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.serviceAccountName }}
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Release.Namespace }}
+---
+# ClusterRoleBinding for Agent
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.serviceAccountName }}-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.serviceAccountName }}-agent
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccountName }}
+    namespace: {{ .Release.Namespace }}
+---
+# ClusterRoleBinding for Webhook
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.serviceAccountName }}-webhook
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.serviceAccountName }}-webhook
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccountName }}
+    namespace: {{ .Release.Namespace }}
