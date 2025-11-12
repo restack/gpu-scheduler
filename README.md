@@ -2,6 +2,9 @@
 
 Topology-aware, gang-friendly GPU scheduler for Kubernetes with atomic device leasing, claim-based APIs, and automatic environment injection.
 
+<img src="docs/screen.png">
+
+
 ## Features
 
 - **Smart GPU Allocation**: Atomic device locking prevents double-booking
@@ -10,12 +13,12 @@ Topology-aware, gang-friendly GPU scheduler for Kubernetes with atomic device le
 - **Automatic Setup**: Webhook injects `CUDA_VISIBLE_DEVICES` automatically
 - **Gang Scheduling**: Multi-pod coordination (planned)
 
+
 ## Quick Start
 
 ```bash
 # 1. Install
-kubectl apply -f charts/gpu-scheduler/templates/crds.yaml
-helm install gpu-scheduler charts/gpu-scheduler
+helm install gpu-scheduler charts/gpu-scheduler -n gpu-scheduler
 
 # 2. Create a GPU claim
 kubectl apply -f - <<EOF
@@ -35,15 +38,16 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: gpu-test
+  namespace: gpu-scheduler
   annotations:
-    gpu.scheduling/claim: my-gpu
+    gpu.scheduling/claim: single-gpu
 spec:
   schedulerName: gpu-scheduler
   restartPolicy: Never
   containers:
-    - name: test
+    - name: cuda-test
       image: nvidia/cuda:12.4.1-runtime-ubuntu22.04
-      command: ["nvidia-smi"]
+      command: ["bash","-lc","echo CVD=$CUDA_VISIBLE_DEVICES; nvidia-smi -L && nvidia-smi --query-gpu=index,name,memory.total --format=csv"]
       resources:
         limits:
           nvidia.com/gpu: "1"

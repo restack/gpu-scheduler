@@ -91,6 +91,7 @@ apiVersion: gpu.scheduling/v1
 kind: GpuClaim
 metadata:
   name: single-gpu
+  namespace: gpu-scheduler
 spec:
   devices:
     count: 1
@@ -105,6 +106,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: gpu-test
+  namespace: gpu-scheduler
   annotations:
     gpu.scheduling/claim: single-gpu
 spec:
@@ -113,7 +115,7 @@ spec:
   containers:
     - name: cuda-test
       image: nvidia/cuda:12.4.1-runtime-ubuntu22.04
-      command: ["nvidia-smi"]
+      command: ["bash","-lc","echo CVD=$CUDA_VISIBLE_DEVICES; nvidia-smi -L && nvidia-smi --query-gpu=index,name,memory.total --format=csv"]
       resources:
         limits:
           nvidia.com/gpu: "1"
