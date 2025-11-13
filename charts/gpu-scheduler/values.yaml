@@ -1,20 +1,25 @@
 image:
   repository: ghcr.io/ziwon/gpu-scheduler
-  tag: v0.1.0
-  pullPolicy: IfNotPresent
+  tag: v0.2.0
+  pullPolicy: Always
 
 webhook:
   image:
     repository: ghcr.io/ziwon/gpu-scheduler-webhook
-    tag: v0.1.0
-    pullPolicy: IfNotPresent
-  caBundle: ""
+    tag: v0.2.0
+    pullPolicy: Always
+  caBundle: ""  # Set via: kubectl get secret gpu-scheduler-webhook-cert -o jsonpath='{.data.ca\.crt}'
+  excludeNamespaces:
+    - kube-system
+    - kube-public
+    - kube-node-lease
+  excludeOwnNamespace: false
 
 agent:
   image:
     repository: ghcr.io/ziwon/gpu-scheduler-agent
-    tag: v0.1.0
-    pullPolicy: IfNotPresent
+    tag: v0.2.0
+    pullPolicy: Always
 
 serviceAccountName: gpu-scheduler
 

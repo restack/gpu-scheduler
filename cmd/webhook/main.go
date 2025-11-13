@@ -5,13 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"strings"
 
 	admv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/aaronlab/gpu-scheduler/internal/util"
+	"github.com/ziwon/gpu-scheduler/internal/util"
 )
 
 var (
@@ -46,19 +45,25 @@ func mutate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allocated := pod.GetAnnotations()[util.AnnoAllocated]
+	if pod.Annotations == nil || pod.Annotations[util.AnnoClaim] == "" {
+		review.Response = &admv1.AdmissionResponse{
+			UID:     review.Request.UID,
+			Allowed: true,
+		}
+		writeResponse(w, review)
+		return
+	}
 	response := &admv1.AdmissionResponse{
 		UID:     review.Request.UID,
 		Allowed: true,
 	}
-	if allocated == "" || len(pod.Spec.Containers) == 0 {
+	if len(pod.Spec.Containers) == 0 {
 		review.Response = response
 		writeResponse(w, review)
 		return
 	}
 
-	devices := deviceIDs(allocated)
-	patch := buildPatch(pod, devices)
+	patch := buildPatch(pod)
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
 		writeResponse(w, admissionError(review, err))
@@ -72,26 +77,37 @@ func mutate(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, review)
 }
 
-func buildPatch(pod *corev1.Pod, devices string) []map[string]interface{} {
+const annotationFieldPath = "metadata.annotations['" + util.AnnoAllocated + "']"
+
+func buildPatch(pod *corev1.Pod) []map[string]interface{} {
 	var ops []map[string]interface{}
 	for i, c := range pod.Spec.Containers {
 		envPath := fmt.Sprintf("/spec/containers/%d/env", i)
-		value := map[string]string{
-			"name":  "CUDA_VISIBLE_DEVICES",
-			"value": devices,
-		}
-		if len(c.Env) == 0 {
-			ops = append(ops, map[string]interface{}{
-				"op":   "add",
-				"path": envPath,
-				"value": []map[string]string{
-					value,
+		value := map[string]interface{}{
+			"name": "CUDA_VISIBLE_DEVICES",
+			"valueFrom": map[string]interface{}{
+				"fieldRef": map[string]string{
+					"fieldPath": annotationFieldPath,
 				},
+			},
+		}
+		switch idx := envIndex(c.Env, value["name"].(string)); {
+		case idx == -1 && len(c.Env) == 0:
+			ops = append(ops, map[string]interface{}{
+				"op":    "add",
+				"path":  envPath,
+				"value": []map[string]interface{}{value},
 			})
-		} else {
+		case idx == -1:
 			ops = append(ops, map[string]interface{}{
 				"op":    "add",
 				"path":  envPath + "/-",
+				"value": value,
+			})
+		default:
+			ops = append(ops, map[string]interface{}{
+				"op":    "replace",
+				"path":  fmt.Sprintf("%s/%d", envPath, idx),
 				"value": value,
 			})
 		}
@@ -99,12 +115,13 @@ func buildPatch(pod *corev1.Pod, devices string) []map[string]interface{} {
 	return ops
 }
 
-func deviceIDs(allocated string) string {
-	parts := strings.SplitN(allocated, ":", 2)
-	if len(parts) == 2 {
-		return parts[1]
+func envIndex(vars []corev1.EnvVar, name string) int {
+	for i, env := range vars {
+		if env.Name == name {
+			return i
+		}
 	}
-	return allocated
+	return -1
 }
 
 func admissionError(review admv1.AdmissionReview, err error) admv1.AdmissionReview {

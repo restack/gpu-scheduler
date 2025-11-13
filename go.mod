@@ -1,4 +1,4 @@
-module github.com/aaronlab/gpu-scheduler
+module github.com/ziwon/gpu-scheduler
 
 go 1.24.0
 

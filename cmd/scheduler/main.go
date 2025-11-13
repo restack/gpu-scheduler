@@ -7,7 +7,7 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/kubernetes/cmd/kube-scheduler/app"
 
-	"github.com/aaronlab/gpu-scheduler/internal/plugin/gpuclaim"
+	"github.com/ziwon/gpu-scheduler/internal/plugin/gpuclaim"
 )
 
 func main() {

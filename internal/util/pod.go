@@ -20,7 +20,7 @@ func SetAllocated(p *corev1.Pod, node string, ids []int) {
 		m = map[string]string{}
 	}
 	b, _ := json.Marshal(ids)
-	m[AnnoAllocated] = node + ":" + trimList(b)
+	m[AnnoAllocated] = trimList(b)
 	p.Annotations = m
 }
 

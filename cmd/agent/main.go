@@ -15,7 +15,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apiv1 "github.com/aaronlab/gpu-scheduler/api/v1"
+	apiv1 "github.com/ziwon/gpu-scheduler/api/v1"
 )
 
 func main() {
@@ -73,20 +73,27 @@ func discoverDevices() []apiv1.Device {
 }
 
 func publishStatus(ctx context.Context, c client.Client, nodeName string, devices []apiv1.Device) error {
-	obj := &apiv1.GpuNodeStatus{
-		TypeMeta:   metav1.TypeMeta{APIVersion: "gpu.scheduling/v1", Kind: "GpuNodeStatus"},
-		ObjectMeta: metav1.ObjectMeta{Name: nodeName},
+	apply := &apiv1.GpuNodeStatus{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "gpu.scheduling/v1",
+			Kind:       "GpuNodeStatus",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nodeName,
+		},
 		Spec: apiv1.GpuNodeStatusSpec{
 			NodeName: nodeName,
 		},
 	}
-	if err := c.Patch(ctx, obj, client.Apply, client.FieldOwner("gpu-agent"), client.ForceOwnership); err != nil {
+	if err := c.Patch(ctx, apply, client.Apply, client.FieldOwner("gpu-agent"), client.ForceOwnership); err != nil {
 		return err
 	}
 
 	status := &apiv1.GpuNodeStatus{
-		TypeMeta:   obj.TypeMeta,
-		ObjectMeta: obj.ObjectMeta,
+		TypeMeta: apply.TypeMeta,
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nodeName,
+		},
 		Status: apiv1.GpuNodeStatusStatus{
 			Devices: devices,
 			Total:   len(devices),

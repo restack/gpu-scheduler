@@ -6,23 +6,28 @@ webhooks:
   - name: pods.gpu-scheduler.svc
     admissionReviewVersions: ["v1"]
     sideEffects: None
-    failurePolicy: Ignore  # Changed to Ignore to allow webhook pod to start
+    failurePolicy: Ignore
     clientConfig:
       service:
         name: gpu-scheduler-webhook
         namespace: {{ .Release.Namespace }}
         path: /mutate
-      caBundle: {{ .Values.webhook.caBundle | default "" | quote }}
-    # Exclude the webhook's own namespace to avoid chicken-and-egg problem
+      {{- if .Values.webhook.caBundle }}
+      caBundle: {{ .Values.webhook.caBundle }}
+      {{- end }}
+    {{- if or .Values.webhook.excludeNamespaces .Values.webhook.excludeOwnNamespace }}
     namespaceSelector:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: NotIn
           values:
+            {{- if .Values.webhook.excludeOwnNamespace }}
             - {{ .Release.Namespace }}
-            - kube-system
-            - kube-public
-            - kube-node-lease
+            {{- end }}
+            {{- range .Values.webhook.excludeNamespaces }}
+            - {{ . }}
+            {{- end }}
+    {{- end }}
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]
