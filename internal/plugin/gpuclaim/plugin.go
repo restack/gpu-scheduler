@@ -8,19 +8,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientset "k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-    utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-    clientset "k8s.io/client-go/kubernetes"
-    coordclient "k8s.io/client-go/kubernetes/typed/coordination/v1"
-    "k8s.io/klog/v2"
-    framework "k8s.io/kubernetes/pkg/scheduler/framework"
-    crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	coordclient "k8s.io/client-go/kubernetes/typed/coordination/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
+	framework "k8s.io/kubernetes/pkg/scheduler/framework"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-    apiv1 "github.com/ziwon/gpu-scheduler/api/v1"
-    "github.com/ziwon/gpu-scheduler/internal/lease"
-    "github.com/ziwon/gpu-scheduler/internal/util"
+	apiv1 "github.com/ziwon/gpu-scheduler/api/v1"
+	"github.com/ziwon/gpu-scheduler/internal/lease"
+	"github.com/ziwon/gpu-scheduler/internal/util"
 )
 
 const (
@@ -59,8 +59,8 @@ func (s *stateData) Clone() framework.StateData {
 
 // Plugin implements scheduler hooks.
 type Plugin struct {
-	client clientset.Interface
-	coord  coordclient.CoordinationV1Interface
+	client    clientset.Interface
+	coord     coordclient.CoordinationV1Interface
 	crcClient crclient.Client
 }
 
@@ -92,6 +92,9 @@ func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framewor
 		return nil, fmt.Errorf("build controller-runtime client: %v", err)
 	}
 
+	// Start the garbage collector
+	lease.StartGC(context.Background(), cs)
+
 	return &Plugin{
 		client:    cs,
 		coord:     cs.CoordinationV1(),
@@ -101,38 +104,38 @@ func New(_ context.Context, _ runtime.Object, handle framework.Handle) (framewor
 
 // PreFilter reads annotations and seeds scheduler state.
 func (p *Plugin) PreFilter(
-    ctx context.Context,
-    cycleState *framework.CycleState,
-    pod *corev1.Pod,
+	ctx context.Context,
+	cycleState *framework.CycleState,
+	pod *corev1.Pod,
 ) (*framework.PreFilterResult, *framework.Status) {
-    claimName := pod.GetAnnotations()[util.AnnoClaim]
-    if claimName == "" {
-        return nil, framework.NewStatus(framework.Unschedulable, "gpu claim annotation missing")
-    }
+	claimName := pod.GetAnnotations()[util.AnnoClaim]
+	if claimName == "" {
+		return nil, framework.NewStatus(framework.Unschedulable, "gpu claim annotation missing")
+	}
 
 	// Fetch the GpuClaim referenced by the pod.
-    claim := &apiv1.GpuClaim{}
-    if err := p.crClient.Get(ctx, types.NamespacedName{
-        Namespace: pod.Namespace,
-        Name:      claimName,
-    }, claim); err != nil {
+	claim := &apiv1.GpuClaim{}
+	if err := p.crcClient.Get(ctx, types.NamespacedName{
+		Namespace: pod.Namespace,
+		Name:      claimName,
+	}, claim); err != nil {
 		// Returning Error here would affect the entire scheduler; for now, return Unschedulable
-        msg := fmt.Sprintf("failed to get GpuClaim %q: %v", claimName, err)
-        return nil, framework.NewStatus(framework.Unschedulable, msg)
-    }
+		msg := fmt.Sprintf("failed to get GpuClaim %q: %v", claimName, err)
+		return nil, framework.NewStatus(framework.Unschedulable, msg)
+	}
 
 	// Use devices.count, default to defaultGPUCount if not specified
-    reqCount := claim.Spec.Devices.Count
-    if reqCount <= 0 {
-        reqCount = defaultGPUCount
-    }
+	reqCount := claim.Spec.Devices.Count
+	if reqCount <= 0 {
+		reqCount = defaultGPUCount
+	}
 
-    state := &stateData{
-        claimName: claimName,
-        reqCount:  reqCount,
-    }
-    cycleState.Write(Name, state)
-    return nil, nil
+	state := &stateData{
+		claimName: claimName,
+		reqCount:  reqCount,
+	}
+	cycleState.Write(Name, state)
+	return nil, nil
 }
 
 func (p *Plugin) PreFilterExtensions() framework.PreFilterExtensions { return nil }
@@ -164,7 +167,7 @@ func (p *Plugin) Reserve(ctx context.Context, cycleState *framework.CycleState, 
 	}
 
 	// Check if the node has any GPU devices.
-	if len(gns.Status.Devices)  == 0 {
+	if len(gns.Status.Devices) == 0 {
 		return framework.NewStatus(framework.Unschedulable, "node has no GPU devices")
 	}
 
@@ -176,14 +179,14 @@ func (p *Plugin) Reserve(ctx context.Context, cycleState *framework.CycleState, 
 		}
 
 		id := dev.ID
-		ok, err := lease.TryAcquire(ctx, p.coord, pod.Namespace, nodeName, string(pod.UID), id)
-        if err != nil {
-            klog.V(4).InfoS("lease acquisition failed", "node", nodeName, "gpuID", id, "err", err)
-            continue
-        }
-        if ok {
-            allocated = append(allocated, id)
-        }
+		ok, err := lease.TryAcquire(ctx, p.coord, pod.Namespace, nodeName, string(pod.UID), pod.Name, id)
+		if err != nil {
+			klog.V(4).InfoS("lease acquisition failed", "node", nodeName, "gpuID", id, "err", err)
+			continue
+		}
+		if ok {
+			allocated = append(allocated, id)
+		}
 	}
 
 	// Check if we acquired enough GPUs.

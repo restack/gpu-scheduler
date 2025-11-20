@@ -18,7 +18,7 @@ func LeaseName(node string, id int) string {
 func TryAcquire(
 	ctx context.Context,
 	cli coordclient.CoordinationV1Interface,
-	ns, node, holder string,
+	ns, node, holder, podName string,
 	id int,
 ) (bool, error) {
 	name := LeaseName(node, id)
@@ -26,6 +26,10 @@ func TryAcquire(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
+			Labels: map[string]string{
+				"gpu.scheduling/managed": "true",
+				"gpu.scheduling/pod":     podName,
+			},
 		},
 		Spec: coordv1.LeaseSpec{
 			HolderIdentity: strPtr(holder),
