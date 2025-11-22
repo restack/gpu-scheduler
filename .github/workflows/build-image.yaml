@@ -15,7 +15,7 @@ on:
 env:
   REGISTRY: harbor.home.lab
   BUILDKIT_HOST: tcp://buildkitd.buildkit.svc.cluster.local:1234
-  CACHE_REPO: cache/gpu-scheduler
+  REPO: restack/gpu-scheduler
 
 jobs:
   prepare:
@@ -93,8 +93,8 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT=${{ steps.meta.outputs.commit }}
             BUILD_DATE=${{ steps.meta.outputs.date }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_REPO }}:${{ matrix.component }}-cache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_REPO }}:${{ matrix.component }}-cache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.REPO }}:${{ matrix.component }}-cache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.REPO }}:${{ matrix.component }}-cache,mode=max
 
       - name: Image summary
         run: |
