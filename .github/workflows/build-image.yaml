@@ -47,31 +47,24 @@ jobs:
       - name: Set up build metadata
         id: meta
         run: |
-          # Version
           if [ "${{ github.ref_type }}" == "tag" ]; then
             VERSION="${{ github.ref_name }}"
           else
             VERSION="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
           fi
 
-          # Metadata
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
-          # Image name and tags
           IMAGE_BASE="${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.component }}"
           echo "image_base=${IMAGE_BASE}" >> $GITHUB_OUTPUT
 
-          # Build tags list
-          TAGS="${IMAGE_BASE}:${VERSION}"
-          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            TAGS="${TAGS}
-${IMAGE_BASE}:latest"
-          fi
-
           echo "tags<<EOF" >> $GITHUB_OUTPUT
-          echo "$TAGS" >> $GITHUB_OUTPUT
+          echo "${IMAGE_BASE}:${VERSION}" >> $GITHUB_OUTPUT
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
+          fi
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Login to Harbor
