@@ -2,24 +2,17 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       component:
-        description: 'Component to build (scheduler, lease-manager, or all)'
+        description: 'Component to build'
         required: false
         default: 'all'
         type: choice
-        options:
-          - all
-          - scheduler
-          - lease-manager
+        options: [all, scheduler, lease-manager]
 
 env:
   REGISTRY: harbor.home.lab
@@ -27,152 +20,123 @@ env:
   CACHE_REPO: cache/gpu-scheduler
 
 jobs:
-  build-scheduler:
-    if: ${{ github.event.inputs.component == 'scheduler' || github.event.inputs.component == 'all' || github.event.inputs.component == '' }}
+  prepare:
     runs-on: homelab-gh
+    outputs:
+      components: ${{ steps.components.outputs.matrix }}
+    steps:
+      - id: components
+        run: |
+          COMPONENT="${{ github.event.inputs.component }}"
+          if [ -z "$COMPONENT" ] || [ "$COMPONENT" == "all" ]; then
+            echo 'matrix=["scheduler","lease-manager"]' >> $GITHUB_OUTPUT
+          else
+            echo "matrix=[\"$COMPONENT\"]" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: prepare
+    runs-on: homelab-gh
+    strategy:
+      matrix:
+        component: ${{ fromJson(needs.prepare.outputs.components) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Install buildctl
+        run: |
+          if ! command -v buildctl &> /dev/null; then
+            BUILDKIT_VERSION=v0.17.3
+            echo "Installing buildctl ${BUILDKIT_VERSION}..."
+            wget -qO- https://github.com/moby/buildkit/releases/download/${BUILDKIT_VERSION}/buildkit-${BUILDKIT_VERSION}.linux-amd64.tar.gz | \
+              tar xz -C /tmp
+            sudo mv /tmp/bin/buildctl /usr/local/bin/
+          fi
+          buildctl --version
+
       - name: Set up build metadata
         id: meta
         run: |
-          # Generate version from git
+          # Version
           if [ "${{ github.ref_type }}" == "tag" ]; then
             VERSION="${{ github.ref_name }}"
           else
             VERSION="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
           fi
 
-          # Set build metadata
+          # Metadata
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
-          # Generate image tags
-          REPO_NAME="${{ github.repository }}"
-          IMAGE_NAME="${REGISTRY}/${REPO_NAME}/scheduler"
+          # Image name
+          IMAGE_BASE="${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.component }}"
+          echo "image_base=${IMAGE_BASE}" >> $GITHUB_OUTPUT
 
-          TAGS="${IMAGE_NAME}:${VERSION}"
+          # Primary tag
+          echo "primary_tag=${IMAGE_BASE}:${VERSION}" >> $GITHUB_OUTPUT
+
+          # Latest tag for main branch
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            TAGS="${TAGS},${IMAGE_NAME}:latest"
+            echo "latest_tag=${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
+            echo "push_latest=true" >> $GITHUB_OUTPUT
+          else
+            echo "push_latest=false" >> $GITHUB_OUTPUT
           fi
 
-          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-          echo "image=${IMAGE_NAME}" >> $GITHUB_OUTPUT
-
-      - name: Login to Harbor (for BuildKit pushes & cache)
+      - name: Login to Harbor
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_PASSWORD }}
 
-      - name: Build and push scheduler image via BuildKit
+      - name: Build and push primary tag
         run: |
-          IMAGE_NAME="${{ env.REGISTRY }}/${{ github.repository }}/scheduler"
-          CACHE_REF="${{ env.REGISTRY }}/${{ env.CACHE_REPO }}:scheduler-cache"
+          CACHE_REF="${{ env.REGISTRY }}/${{ env.CACHE_REPO }}:${{ matrix.component }}-cache"
 
           buildctl build \
-            --addr="${BUILDKIT_HOST}" \
+            --addr="${{ env.BUILDKIT_HOST }}" \
             --frontend=dockerfile.v0 \
             --local context=. \
             --local dockerfile=. \
-            --opt build-arg:CMD_PATH=cmd/scheduler \
+            --opt build-arg:CMD_PATH=cmd/${{ matrix.component }} \
             --opt build-arg:VERSION=${{ steps.meta.outputs.version }} \
             --opt build-arg:COMMIT=${{ steps.meta.outputs.commit }} \
             --opt build-arg:BUILD_DATE=${{ steps.meta.outputs.date }} \
             --import-cache type=registry,ref="${CACHE_REF}" \
             --export-cache type=registry,ref="${CACHE_REF}",mode=max \
-            --output type=image,name="${IMAGE_NAME}:${{ steps.meta.outputs.version }}",push=true
+            --output type=image,name=${{ steps.meta.outputs.primary_tag }},push=true
 
-      - name: Image summary
+      - name: Push latest tag
+        if: steps.meta.outputs.push_latest == 'true'
         run: |
-          echo "### Scheduler Image Built Successfully :rocket:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ steps.meta.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.meta.outputs.tags }}"
-          for tag in "${TAG_ARRAY[@]}"; do
-            echo "- \`${tag}\`" >> $GITHUB_STEP_SUMMARY
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Metadata:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Version: \`${{ steps.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Commit: \`${{ steps.meta.outputs.commit }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Build Date: \`${{ steps.meta.outputs.date }}\`" >> $GITHUB_STEP_SUMMARY
-
-  build-lease-manager:
-    if: ${{ github.event.inputs.component == 'lease-manager' || github.event.inputs.component == 'all' || github.event.inputs.component == '' }}
-    runs-on: homelab-gh
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up build metadata
-        id: meta
-        run: |
-          # Generate version from git
-          if [ "${{ github.ref_type }}" == "tag" ]; then
-            VERSION="${{ github.ref_name }}"
-          else
-            VERSION="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
-          fi
-
-          # Set build metadata
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-          echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-
-          # Generate image tags
-          REPO_NAME="${{ github.repository }}"
-          IMAGE_NAME="${REGISTRY}/${REPO_NAME}/lease-manager"
-
-          TAGS="${IMAGE_NAME}:${VERSION}"
-          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            TAGS="${TAGS},${IMAGE_NAME}:latest"
-          fi
-
-          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-          echo "image=${IMAGE_NAME}" >> $GITHUB_OUTPUT
-
-      - name: Login to Harbor (for BuildKit pushes & cache)
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Build and push lease-manager image
-        run: |
-          IMAGE_NAME="${{ env.REGISTRY }}/${{ github.repository }}/lease-manager"
-          CACHE_REF="${{ env.REGISTRY }}/${{ env.CACHE_REPO }}:lease-manager-cache"
-
           buildctl build \
-            --addr="${BUILDKIT_HOST}" \
+            --addr="${{ env.BUILDKIT_HOST }}" \
             --frontend=dockerfile.v0 \
             --local context=. \
             --local dockerfile=. \
-            --opt build-arg:CMD_PATH=cmd/lease-manager \
+            --opt build-arg:CMD_PATH=cmd/${{ matrix.component }} \
             --opt build-arg:VERSION=${{ steps.meta.outputs.version }} \
             --opt build-arg:COMMIT=${{ steps.meta.outputs.commit }} \
             --opt build-arg:BUILD_DATE=${{ steps.meta.outputs.date }} \
-            --output type=image,name=${{ steps.meta.outputs.tags }},push=true
+            --import-cache type=registry,ref="${{ env.REGISTRY }}/${{ env.CACHE_REPO }}:${{ matrix.component }}-cache" \
+            --output type=image,name=${{ steps.meta.outputs.latest_tag }},push=true
 
       - name: Image summary
         run: |
-          echo "### Lease Manager Image Built Successfully :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "### ${{ matrix.component }} Image Built Successfully :rocket:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ steps.meta.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Component:** \`${{ matrix.component }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.meta.outputs.tags }}"
-          for tag in "${TAG_ARRAY[@]}"; do
-            echo "- \`${tag}\`" >> $GITHUB_STEP_SUMMARY
-          done
+          echo "- \`${{ steps.meta.outputs.primary_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.meta.outputs.push_latest }}" == "true" ]; then
+            echo "- \`${{ steps.meta.outputs.latest_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Metadata:**" >> $GITHUB_STEP_SUMMARY
           echo "- Version: \`${{ steps.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
