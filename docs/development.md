@@ -98,7 +98,6 @@ make docker-agent
 kind load docker-image ghcr.io/ziwon/gpu-scheduler-agent:dev --name gpu-test
 
 # Deploy
-kubectl apply -f charts/gpu-scheduler/templates/crds.yaml
 helm install gpu-scheduler charts/gpu-scheduler
 ```
 

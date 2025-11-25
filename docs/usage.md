@@ -9,17 +9,9 @@
 
 ## Installation
 
-### Step 1: Apply CRDs
 
-```bash
-kubectl apply -f charts/gpu-scheduler/templates/crds.yaml
-```
 
-This installs the custom resource definitions:
-- `GpuClaim`
-- `GpuNodeStatus`
-
-### Step 2: Setup Webhook TLS Certificates
+### Step 1: Setup Webhook TLS Certificates
 
 The admission webhook **requires TLS certificates** to function. Kubernetes mandates HTTPS for admission webhooks.
 
@@ -47,7 +39,7 @@ The guide covers:
 - cert-manager setup for production
 - Troubleshooting common certificate issues
 
-### Step 3: Install with Helm
+### Step 2: Install with Helm
 
 ```bash
 helm install gpu-scheduler charts/gpu-scheduler
@@ -59,12 +51,12 @@ Or with custom namespace:
 export NAMESPACE=gpu-system
 
 # Don't forget to create certificates in the custom namespace!
-# Repeat Step 2 with NAMESPACE=gpu-system
+# Repeat Step 1 with NAMESPACE=gpu-system
 
 ./hack/dev.sh
 ```
 
-### Step 4: Verify Installation
+### Step 3: Verify Installation
 
 Check that all components are running:
 
@@ -299,7 +291,7 @@ kubectl get secret gpu-scheduler-webhook-cert
 kubectl logs -l app=gpu-scheduler-webhook
 ```
 
-**Fix:** If the certificate secret is missing, generate certificates following [Step 2](#step-2-setup-webhook-tls-certificates).
+**Fix:** If the certificate secret is missing, generate certificates following [Step 1](#step-1-setup-webhook-tls-certificates).
 
 📖 **For detailed troubleshooting, see [Webhook Certificates Guide - Troubleshooting](webhook-certificates.md#troubleshooting)**
 
