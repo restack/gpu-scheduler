@@ -49,7 +49,7 @@ NVLink bandwidth preferences.
 | Field | Type | Description | Example |
 |-------|------|-------------|---------|
 | `mode` | string | Requirement level: `Required`, `Preferred`, or `Ignore` | `"Preferred"` |
-| `minBandwidthGBps` | int | Minimum interconnect bandwidth | `600` |
+| `minBandwidthGBps` | int | Minimum interconnect bandwidth | `400` |
 
 **Mode Details**:
 - `Required`: Pod won't schedule if topology requirements not met
@@ -109,7 +109,7 @@ spec:
     exclusivity: Exclusive
   topology:
     mode: Preferred
-    minBandwidthGBps: 600
+    minBandwidthGBps: 400
   selector:
     matchLabels:
       gpu-type: a100
@@ -164,7 +164,7 @@ Reports per-node GPU inventory and health. Created and updated by the agent Daem
 | `id` | int | GPU device ID | `0` |
 | `inUseBy` | []string | Pod UIDs using this GPU | `["abc-123", "def-456"]` |
 | `health` | string | Health status: `Healthy`, `Unhealthy`, or `Unknown` | `"Healthy"` |
-| `bandwidthGBps` | int | NVLink bandwidth to peers | `600` |
+| `bandwidthGBps` | int | NVLink bandwidth to peers | `400` |
 | `island` | string | NVLink island identifier | `"nvlink-group-0"` |
 
 **Island**: GPUs in the same island have high-speed interconnect (NVLink). GPUs in different islands communicate through PCIe (slower).
@@ -183,37 +183,37 @@ status:
   devices:
     - id: 0
       health: Healthy
-      bandwidthGBps: 600
+      bandwidthGBps: 400
       island: nvlink-group-0
       inUseBy: ["pod-abc-123"]
     - id: 1
       health: Healthy
-      bandwidthGBps: 600
+      bandwidthGBps: 400
       island: nvlink-group-0
       inUseBy: []
     - id: 2
       health: Healthy
-      bandwidthGBps: 600
+      bandwidthGBps: 400
       island: nvlink-group-0
       inUseBy: []
     - id: 3
       health: Healthy
-      bandwidthGBps: 600
+      bandwidthGBps: 400
       island: nvlink-group-0
       inUseBy: []
     - id: 4
       health: Healthy
-      bandwidthGBps: 64
+      bandwidthGBps: 200
       island: nvlink-group-1
       inUseBy: []
     - id: 5
       health: Healthy
-      bandwidthGBps: 64
+      bandwidthGBps: 200
       island: nvlink-group-1
       inUseBy: []
     - id: 6
       health: Healthy
-      bandwidthGBps: 64
+      bandwidthGBps: 200
       island: nvlink-group-1
       inUseBy: []
     - id: 7
@@ -224,8 +224,8 @@ status:
 ```
 
 In this example:
-- GPUs 0-3 are in one NVLink island (600 GB/s interconnect)
-- GPUs 4-7 are in another island (64 GB/s interconnect)
+- GPUs 0-3 are in one NVLink island (400 GB/s interconnect)
+- GPUs 4-7 are in another island (200 GB/s interconnect)
 - GPU 7 is unhealthy and shouldn't be allocated
 
 ---

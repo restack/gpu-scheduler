@@ -3,6 +3,9 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       component:
