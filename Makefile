@@ -1,6 +1,6 @@
 # Project variables
 PROJECT_NAME := gpu-scheduler
-ORG := ziwon
+ORG := restack
 REGISTRY ?= ghcr.io
 VERSION ?= dev
 GO_VERSION ?= 1.24

@@ -11,7 +11,7 @@ The GPU Scheduler is a Kubernetes extension designed to provide smart, atomic, a
 
 ## Documentation
 
-For detailed documentation, including installation, usage, and architecture, please refer to the [Documentation](docs/README.md).
+For detailed documentation, including installation, usage, and architecture, please refer to the [docs/](docs/README.md).
 
 - [Architecture](docs/architecture.md)
 - [Usage Guide](docs/usage.md)

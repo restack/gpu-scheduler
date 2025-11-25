@@ -89,13 +89,13 @@ kind create cluster --name gpu-test
 ```bash
 # Build and load images into kind
 make docker
-kind load docker-image ghcr.io/ziwon/gpu-scheduler:dev --name gpu-test
+kind load docker-image ghcr.io/restack/gpu-scheduler:dev --name gpu-test
 
 make docker-webhook
-kind load docker-image ghcr.io/ziwon/gpu-scheduler-webhook:dev --name gpu-test
+kind load docker-image ghcr.io/restack/gpu-scheduler-webhook:dev --name gpu-test
 
 make docker-agent
-kind load docker-image ghcr.io/ziwon/gpu-scheduler-agent:dev --name gpu-test
+kind load docker-image ghcr.io/restack/gpu-scheduler-agent:dev --name gpu-test
 
 # Deploy
 helm install gpu-scheduler charts/gpu-scheduler
@@ -111,7 +111,7 @@ vim internal/plugin/gpuclaim/plugin.go
 make docker
 
 # 3. Reload into kind
-kind load docker-image ghcr.io/ziwon/gpu-scheduler:dev --name gpu-test
+kind load docker-image ghcr.io/restack/gpu-scheduler:dev --name gpu-test
 
 # 4. Restart pod
 kubectl rollout restart deployment gpu-scheduler
@@ -289,7 +289,7 @@ kubectl get leases -w | grep gpu-
    ```bash
    go test ./internal/topo
    make docker
-   kind load docker-image ghcr.io/ziwon/gpu-scheduler:dev
+   kind load docker-image ghcr.io/restack/gpu-scheduler:dev
    kubectl rollout restart deployment gpu-scheduler
    ```
 
@@ -412,9 +412,9 @@ Should see: `"Registered plugin" plugin="GpuClaimPlugin"`
 1. Update version in `charts/gpu-scheduler/Chart.yaml`
 2. Build and tag images:
    ```bash
-   make docker SCHED_IMG=ghcr.io/ziwon/gpu-scheduler:v0.1.0
-   make docker-webhook WEBHOOK_IMG=ghcr.io/ziwon/gpu-scheduler-webhook:v0.1.0
-   make docker-agent AGENT_IMG=ghcr.io/ziwon/gpu-scheduler-agent:v0.1.0
+   make docker SCHED_IMG=ghcr.io/restack/gpu-scheduler:v0.1.0
+   make docker-webhook WEBHOOK_IMG=ghcr.io/restack/gpu-scheduler-webhook:v0.1.0
+   make docker-agent AGENT_IMG=ghcr.io/restack/gpu-scheduler-agent:v0.1.0
    ```
 3. Push images
 4. Package Helm chart:

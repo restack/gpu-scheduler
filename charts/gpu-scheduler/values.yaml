@@ -1,11 +1,11 @@
 image:
-  repository: ghcr.io/ziwon/gpu-scheduler
+  repository: ghcr.io/restack/gpu-scheduler
   tag: v0.2.0
   pullPolicy: Always
 
 webhook:
   image:
-    repository: ghcr.io/ziwon/gpu-scheduler-webhook
+    repository: ghcr.io/restack/gpu-scheduler-webhook
     tag: v0.2.0
     pullPolicy: Always
   caBundle: ""  # Set via: kubectl get secret gpu-scheduler-webhook-cert -o jsonpath='{.data.ca\.crt}'
@@ -17,7 +17,7 @@ webhook:
 
 agent:
   image:
-    repository: ghcr.io/ziwon/gpu-scheduler-agent
+    repository: ghcr.io/restack/gpu-scheduler-agent
     tag: v0.2.0
     pullPolicy: Always
 

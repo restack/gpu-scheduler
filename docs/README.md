@@ -53,7 +53,7 @@ In this architecture:
 The admission webhook requires TLS certificates. You can generate them using the provided script:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/ziwon/gpu-scheduler/main/hack/gen-webhook-certs.sh | bash -s -- default
+curl -sL https://raw.githubusercontent.com/restack/gpu-scheduler/main/hack/gen-webhook-certs.sh | bash -s -- default
 ```
 
 For more details, see [Webhook Certificates Guide](webhook-certificates.md).
@@ -135,9 +135,9 @@ kind create cluster --config ../hack/kind-cluster.yaml
 
 # Build and load images
 make docker-all
-kind load docker-image ghcr.io/ziwon/gpu-scheduler:dev --name kind
-kind load docker-image ghcr.io/ziwon/gpu-scheduler-webhook:dev --name kind
-kind load docker-image ghcr.io/ziwon/gpu-scheduler-agent:dev --name kind
+kind load docker-image ghcr.io/restack/gpu-scheduler:dev --name kind
+kind load docker-image ghcr.io/restack/gpu-scheduler-webhook:dev --name kind
+kind load docker-image ghcr.io/restack/gpu-scheduler-agent:dev --name kind
 
 # Deploy
 

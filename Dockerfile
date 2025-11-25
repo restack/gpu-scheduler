@@ -60,9 +60,9 @@ FROM gcr.io/distroless/static-debian12:nonroot
 # Metadata labels following OCI spec
 LABEL org.opencontainers.image.title="GPU Scheduler Component" \
       org.opencontainers.image.description="Kubernetes GPU scheduler component" \
-      org.opencontainers.image.url="https://github.com/ziwon/gpu-scheduler" \
-      org.opencontainers.image.source="https://github.com/ziwon/gpu-scheduler" \
-      org.opencontainers.image.vendor="ziwon" \
+      org.opencontainers.image.url="https://github.com/restack/gpu-scheduler" \
+      org.opencontainers.image.source="https://github.com/restack/gpu-scheduler" \
+      org.opencontainers.image.vendor="restack" \
       org.opencontainers.image.licenses="MIT"
 
 # Copy binary from builder

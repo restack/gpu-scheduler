@@ -117,7 +117,7 @@ Benefits:
 
 ```dockerfile
 LABEL org.opencontainers.image.title="GPU Scheduler"
-      org.opencontainers.image.source="https://github.com/ziwon/gpu-scheduler"
+      org.opencontainers.image.source="https://github.com/restack/gpu-scheduler"
       org.opencontainers.image.licenses="MIT"
 ```
 
@@ -160,7 +160,7 @@ make logs
 make docker-scheduler
 
 # Reload in kind
-kind load docker-image ghcr.io/ziwon/gpu-scheduler:dev
+kind load docker-image ghcr.io/restack/gpu-scheduler:dev
 
 # Restart deployment
 kubectl rollout restart deployment/gpu-scheduler
@@ -192,7 +192,7 @@ docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --build-arg CMD_PATH=cmd/scheduler \
   --push \
-  -t ghcr.io/ziwon/gpu-scheduler:latest .
+  -t ghcr.io/restack/gpu-scheduler:latest .
 ```
 
 Or use the Makefile:
@@ -209,13 +209,13 @@ make docker-all
 
 ```bash
 # Check image size
-docker images ghcr.io/ziwon/gpu-scheduler:dev
+docker images ghcr.io/restack/gpu-scheduler:dev
 
 # Inspect layers
-docker history ghcr.io/ziwon/gpu-scheduler:dev
+docker history ghcr.io/restack/gpu-scheduler:dev
 
 # Check metadata
-docker inspect ghcr.io/ziwon/gpu-scheduler:dev
+docker inspect ghcr.io/restack/gpu-scheduler:dev
 ```
 
 ### Build with Debug Info
@@ -295,10 +295,10 @@ FROM golang:latest
 
 ```bash
 # Scan for vulnerabilities
-trivy image ghcr.io/ziwon/gpu-scheduler:dev
+trivy image ghcr.io/restack/gpu-scheduler:dev
 
 # Or use Docker Scout
-docker scout cves ghcr.io/ziwon/gpu-scheduler:dev
+docker scout cves ghcr.io/restack/gpu-scheduler:dev
 ```
 
 ### 5. Regular Updates
@@ -323,7 +323,7 @@ go mod tidy
 
 ```bash
 # Check what's taking space
-docker history ghcr.io/ziwon/gpu-scheduler:dev --human --no-trunc
+docker history ghcr.io/restack/gpu-scheduler:dev --human --no-trunc
 
 # Ensure using distroless final stage
 # Check .dockerignore excludes unnecessary files

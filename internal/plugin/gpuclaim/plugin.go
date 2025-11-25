@@ -18,9 +18,9 @@ import (
 	framework "k8s.io/kubernetes/pkg/scheduler/framework"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	apiv1 "github.com/ziwon/gpu-scheduler/api/v1"
-	"github.com/ziwon/gpu-scheduler/internal/lease"
-	"github.com/ziwon/gpu-scheduler/internal/util"
+	apiv1 "github.com/restack/gpu-scheduler/api/v1"
+	"github.com/restack/gpu-scheduler/internal/lease"
+	"github.com/restack/gpu-scheduler/internal/util"
 )
 
 const (

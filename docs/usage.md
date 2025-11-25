@@ -20,7 +20,7 @@ The admission webhook **requires TLS certificates** to function. Kubernetes mand
 NAMESPACE=default
 
 # Download and run certificate generation script
-curl -sL https://raw.githubusercontent.com/ziwon/gpu-scheduler/main/hack/gen-webhook-certs.sh | bash -s -- ${NAMESPACE}
+curl -sL https://raw.githubusercontent.com/restack/gpu-scheduler/main/hack/gen-webhook-certs.sh | bash -s -- ${NAMESPACE}
 
 # Or manually - see detailed guide
 ```

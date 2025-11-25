@@ -15,7 +15,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apiv1 "github.com/ziwon/gpu-scheduler/api/v1"
+	apiv1 "github.com/restack/gpu-scheduler/api/v1"
 )
 
 func main() {
